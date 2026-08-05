@@ -3,7 +3,8 @@ services:
     name: classroom-poll-backend
     runtime: node
     plan: free
-    buildCommand: npm ci && npx prisma generate
+    nodeVersion: 20.11.1
+    buildCommand: npm install && npx prisma generate
     startCommand: node src/server.js
     envVars:
       - key: NODE_ENV
