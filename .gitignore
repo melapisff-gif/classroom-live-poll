@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+.gradle/
+build/
+app/build/
+
+# Environment
+.env
+.env.local
+local.properties
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Build
+dist/
+coverage/
+
+# Android
+*.apk
+*.aab
+*.jks
+*.keystore

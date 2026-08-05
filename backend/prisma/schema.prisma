@@ -1,0 +1,189 @@
+// This is your Prisma schema file
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  TEACHER
+  STUDENT
+}
+
+enum PollType {
+  SINGLE_CHOICE
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+  YES_NO
+  INTEGER
+}
+
+enum PollStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  STOPPED
+  COMPLETED
+}
+
+enum ClassroomStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model Teacher {
+  id            String    @id @default(uuid())
+  name          String
+  email         String    @unique
+  password      String
+  phone         String?
+  avatar        String?
+  school        String?
+  subject       String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  refreshTokens RefreshToken[] @relation("TeacherRefreshTokens")
+  classrooms    Classroom[]
+  polls         Poll[]
+
+  @@map("teachers")
+}
+
+model Student {
+  id            String    @id @default(uuid())
+  name          String
+  email         String    @unique
+  password      String
+  phone         String?
+  avatar        String?
+  rollNumber    String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  refreshTokens RefreshToken[] @relation("StudentRefreshTokens")
+  memberships   ClassroomMember[]
+  responses     PollResponse[]
+  leaderboard   Leaderboard[]
+
+  @@map("students")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  teacherId String?
+  studentId String?
+  userType  UserRole
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  teacher Teacher? @relation("TeacherRefreshTokens", fields: [teacherId], references: [id], onDelete: Cascade)
+  student Student? @relation("StudentRefreshTokens", fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model Classroom {
+  id          String          @id @default(uuid())
+  name        String
+  description String?
+  joinCode    String          @unique
+  status      ClassroomStatus @default(ACTIVE)
+  teacherId   String
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  teacher     Teacher         @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  members     ClassroomMember[]
+  polls       Poll[]
+
+  @@map("classrooms")
+}
+
+model ClassroomMember {
+  id          String    @id @default(uuid())
+  classroomId String
+  studentId   String
+  joinedAt    DateTime  @default(now())
+  classroom   Classroom @relation(fields: [classroomId], references: [id], onDelete: Cascade)
+  student     Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([classroomId, studentId])
+  @@map("classroom_members")
+}
+
+model Poll {
+  id          String     @id @default(uuid())
+  question    String
+  pollType    PollType
+  options     PollOption[]
+  timer       Int        @default(30)
+  status      PollStatus @default(DRAFT)
+  correctOptionIndex Int?
+  classroomId String
+  teacherId   String
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  classroom   Classroom  @relation(fields: [classroomId], references: [id], onDelete: Cascade)
+  teacher     Teacher    @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  responses   PollResponse[]
+  leaderboard Leaderboard[]
+
+  @@map("polls")
+}
+
+model PollOption {
+  id        String @id @default(uuid())
+  pollId    String
+  content   String
+  index     Int
+  poll      Poll   @relation(fields: [pollId], references: [id], onDelete: Cascade)
+
+  @@map("poll_options")
+}
+
+model PollResponse {
+  id              String   @id @default(uuid())
+  pollId          String
+  studentId       String
+  selectedIndices Int[]
+  responseTime    Int
+  isCorrect       Boolean?
+  createdAt       DateTime @default(now())
+  poll            Poll     @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  student         Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([pollId, studentId])
+  @@map("poll_responses")
+}
+
+model Leaderboard {
+  id          String   @id @default(uuid())
+  pollId      String
+  studentId   String
+  score       Int      @default(0)
+  rank        Int?
+  responseTime Int
+  createdAt   DateTime @default(now())
+  poll        Poll     @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  student     Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([pollId, studentId])
+  @@map("leaderboard")
+}
+
+model Report {
+  id          String   @id @default(uuid())
+  classroomId String
+  pollId      String
+  totalStudents   Int
+  correctCount    Int
+  wrongCount      Int
+  avgResponseTime Float
+  generatedAt     DateTime @default(now())
+
+  @@map("reports")
+}
